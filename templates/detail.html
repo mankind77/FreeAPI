@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- Breadcrumb -->
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+    <nav class="flex items-center space-x-2 text-sm text-slate-500 mb-2">
+        <a href="/" class="hover:text-brand-400 transition">Home</a>
+        <span class="text-slate-600">/</span>
+        <a href="/category/{{ api.category.slug }}" class="hover:text-brand-400 transition">{{ api.category.name }}</a>
+        <span class="text-slate-600">/</span>
+        <span class="text-slate-300 font-medium">{{ api.name }}</span>
+    </nav>
+</div>
+
+<!-- Main Content -->
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <article>
+        <!-- Header -->
+        <div class="bg-slate-800 rounded-2xl border border-slate-700 p-6 md:p-8 mb-6">
+            <div class="flex flex-wrap items-center gap-3 mb-4">
+                {% if api.is_free %}
+                <span class="inline-flex items-center px-3 py-1 text-sm font-medium text-emerald-400 bg-emerald-500/10 rounded-full">
+                    Free
+                </span>
+                {% endif %}
+                <span class="inline-flex items-center px-3 py-1 text-sm font-medium text-slate-400 bg-slate-700 rounded-full">
+                    {{ api.auth_type }}
+                </span>
+                <span class="text-sm text-slate-500">{{ api.category.name }}</span>
+            </div>
+
+            <h1 class="text-3xl font-bold text-white mb-2">{{ api.name }}</h1>
+            <p class="text-lg text-slate-400 mb-4">by {{ api.provider }}</p>
+
+            <div class="flex flex-col sm:flex-row gap-3 mb-6">
+                <a href="{{ api.url }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center px-5 py-2.5 bg-brand-600 text-white font-medium rounded-xl hover:bg-brand-500 transition">
+                    Visit Official Site
+                </a>
+                <button onclick="toggleFavorite({{ api.id }})" id="favBtn" class="inline-flex items-center justify-center px-5 py-2.5 bg-slate-700 text-slate-200 font-medium rounded-xl hover:bg-slate-600 transition border border-slate-600">
+                    Save
+                </button>
+            </div>
+
+            <div class="flex flex-wrap gap-1.5 mt-6">
+                {% for tag in api.tag_list() %}
+                <span class="text-xs font-medium text-brand-400 bg-brand-600/10 px-2.5 py-1 rounded-full">{{ tag }}</span>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Description -->
+        <div class="bg-slate-800 rounded-2xl border border-slate-700 p-6 md:p-8 mb-6">
+            <h2 class="text-xl font-bold text-white mb-4">Description</h2>
+            <div class="markdown-body text-slate-300 text-sm leading-relaxed">
+                {{ api.description | replace('\n', '<br>') | safe }}
+            </div>
+        </div>
+
+        <!-- Request Example -->
+        {% if api.request_example %}
+        <div class="bg-slate-800 rounded-2xl border border-slate-700 p-6 md:p-8 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold text-white">Request Example</h2>
+                <button onclick="copyExample()" id="copyBtn" class="px-3 py-1.5 text-xs font-medium bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition border border-slate-600">
+                    Copy
+                </button>
+            </div>
+            <pre class="bg-slate-950 text-slate-200 p-4 md:p-6 rounded-xl overflow-x-auto text-sm leading-relaxed"><code id="codeBlock">{{ api.request_example }}</code></pre>
+        </div>
+        {% endif %}
+
+        <!-- Meta -->
+        <div class="bg-slate-800 rounded-2xl border border-slate-700 p-6 md:p-8">
+            <h2 class="text-xl font-bold text-white mb-4">API Info</h2>
+            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                <div>
+                    <dt class="text-slate-500 mb-1">Provider</dt>
+                    <dd class="text-white font-medium">{{ api.provider }}</dd>
+                </div>
+                <div>
+                    <dt class="text-slate-500 mb-1">Authentication</dt>
+                    <dd class="text-white font-medium">{{ api.auth_type }}</dd>
+                </div>
+                <div>
+                    <dt class="text-slate-500 mb-1">Free Tier</dt>
+                    <dd class="text-white font-medium">{% if api.is_free %}Yes (free tier available){% else %}No{% endif %}</dd>
+                </div>
+                <div>
+                    <dt class="text-slate-500 mb-1">Status</dt>
+                    <dd class="text-white font-medium">{% if api.status == 'active' %}Active{% else %}Deprecated{% endif %}</dd>
+                </div>
+            </dl>
+        </div>
+    </article>
+
+    <!-- Back -->
+    <div class="mt-8 pb-8">
+        <a href="/category/{{ api.category.slug }}" class="inline-flex items-center text-sm text-brand-400 hover:text-brand-300 transition">
+            Back to {{ api.category.name }}
+        </a>
+    </div>
+</div>
+
+{% endblock %}
+
+<script>
+function copyExample() {
+    const code = document.getElementById('codeBlock').textContent;
+    navigator.clipboard.writeText(code).then(() => {
+        const btn = document.getElementById('copyBtn');
+        btn.textContent = 'Copied!';
+        btn.classList.add('bg-emerald-600', 'text-white', 'border-emerald-500');
+        setTimeout(() => {
+            btn.textContent = 'Copy';
+            btn.classList.remove('bg-emerald-600', 'text-white', 'border-emerald-500');
+        }, 2000);
+    }).catch(() => {
+        const btn = document.getElementById('copyBtn');
+        btn.textContent = 'Failed';
+        setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+    });
+}
+
+function getFavorites() {
+    try { return JSON.parse(localStorage.getItem('freeapi-favs') || '[]'); }
+    catch { return []; }
+}
+
+function toggleFavorite(id) {
+    let favs = getFavorites();
+    const btn = document.getElementById('favBtn');
+    const idx = favs.findIndex(f => f.id === id);
+    if (idx >= 0) {
+        favs.splice(idx, 1);
+        btn.innerHTML = 'Save';
+        btn.classList.remove('bg-yellow-600', 'text-white');
+    } else {
+        favs.push({ id: id, name: '{{ api.name }}', provider: '{{ api.provider }}', url: '{{ api.url }}' });
+        btn.innerHTML = 'Saved';
+        btn.classList.add('bg-yellow-600', 'text-white');
+    }
+    localStorage.setItem('freeapi-favs', JSON.stringify(favs));
+}
+
+// Init button state
+(function() {
+    const favs = getFavorites();
+    if (favs.some(f => f.id === {{ api.id }})) {
+        const btn = document.getElementById('favBtn');
+        btn.innerHTML = 'Saved';
+        btn.classList.add('bg-yellow-600', 'text-white');
+    }
+})();
+</script>

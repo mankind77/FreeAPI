@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- Category Header -->
+<section class="bg-gradient-to-br from-slate-800 to-blue-950">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div class="flex items-center space-x-3 mb-2">
+            <a href="/" class="text-slate-400 hover:text-slate-200 text-sm transition">Home</a>
+            <span class="text-slate-600">/</span>
+            <span class="text-slate-200 text-sm font-medium">{{ category.name }}</span>
+        </div>
+        <h1 class="text-3xl font-bold text-white">{{ category.name }}</h1>
+        <p class="text-slate-400 mt-2">{{ category.description or '' }}</p>
+        <p class="text-slate-500 text-sm mt-3">{{ apis|length }} APIs</p>
+    </div>
+</section>
+
+<!-- API List -->
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    {% if apis %}
+    <div class="grid grid-cols-1 gap-4">
+        {% for api in apis %}
+        <a href="/api/{{ api.id }}" class="block bg-slate-800 rounded-2xl border border-slate-700 p-6 hover:border-brand-500/50 hover:bg-slate-750 transition-all duration-200">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center flex-wrap gap-2 mb-2">
+                        <h2 class="text-lg font-semibold text-white">{{ api.name }}</h2>
+                        {% if api.is_free %}
+                        <span class="text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">Free</span>
+                        {% endif %}
+                        <span class="text-xs text-slate-500">{{ api.auth_type }}</span>
+                    </div>
+                    <p class="text-sm text-slate-400 mb-1">{{ api.provider }}</p>
+                    <p class="text-sm text-slate-500 line-clamp-2">{{ api.description[:150] }}{% if api.description|length > 150 %}...{% endif %}</p>
+                </div>
+                <div class="flex flex-wrap gap-1.5 flex-shrink-0">
+                    {% for tag in api.tag_list()[:4] %}
+                    <span class="text-xs text-slate-400 bg-slate-700 px-2 py-0.5 rounded">{{ tag }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-20">
+        <h2 class="text-xl font-semibold text-slate-300 mb-2">No APIs in this category yet</h2>
+        <p class="text-slate-500">More free APIs coming soon.</p>
+        <a href="/" class="inline-block mt-6 px-5 py-2.5 bg-brand-600 text-white rounded-xl hover:bg-brand-500 transition">Back Home</a>
+    </div>
+    {% endif %}
+</section>
+
+{% endblock %}

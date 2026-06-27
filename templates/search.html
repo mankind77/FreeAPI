@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- Search Hero -->
+<section class="bg-gradient-to-br from-slate-800 via-slate-900 to-blue-950">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <h1 class="text-3xl md:text-4xl font-bold text-center mb-4 text-white">AI Smart Search</h1>
+        <p class="text-slate-400 text-center mb-8 text-lg">Describe what you need in natural language, AI will find the right free APIs.</p>
+
+        <div class="relative">
+            <input type="text" id="searchInput"
+                   placeholder="e.g. What free APIs can I use for Chinese weather data?"
+                   class="w-full px-6 py-4 pr-28 rounded-2xl bg-slate-800 border border-slate-600 text-white text-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 shadow-lg placeholder-slate-500"
+                   autofocus>
+            <button id="searchBtn"
+                    class="absolute right-2 top-1/2 -translate-y-1/2 px-6 py-2.5 bg-brand-600 text-white font-semibold rounded-xl hover:bg-brand-500 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                Search
+            </button>
+        </div>
+    </div>
+</section>
+
+<!-- Results Area -->
+<section class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div id="loadingArea" class="hidden text-center py-12">
+        <div class="inline-flex items-center space-x-3 text-slate-400">
+            <svg class="animate-spin h-5 w-5 text-brand-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+            <span>AI is thinking<span class="loading-dots"></span></span>
+        </div>
+    </div>
+
+    <div id="errorArea" class="hidden"></div>
+
+    <div id="resultArea" class="hidden">
+        <!-- Thinking Process -->
+        <div id="thinkingArea" class="bg-slate-950 rounded-2xl border border-slate-700 p-6 md:p-8 mb-6 hidden">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wide">Thinking Process</h2>
+                <button onclick="toggleThinking()" class="text-xs text-slate-500 hover:text-slate-300 transition">Show/Hide</button>
+            </div>
+            <div id="thinkingContent" class="text-xs text-slate-500 leading-relaxed whitespace-pre-wrap font-mono max-h-96 overflow-y-auto"></div>
+        </div>
+
+        <!-- AI Answer -->
+        <div class="bg-slate-800 rounded-2xl border border-slate-700 p-6 md:p-8 mb-6">
+            <h2 class="text-lg font-bold text-white mb-4">AI Response</h2>
+            <div id="aiAnswer" class="prose prose-sm max-w-none text-slate-300 leading-relaxed"></div>
+        </div>
+
+        <!-- Sources -->
+        <div>
+            <h2 class="text-lg font-bold text-white mb-4">Related APIs</h2>
+            <div id="sourceList" class="grid grid-cols-1 gap-3"></div>
+        </div>
+    </div>
+
+    <!-- Suggestions (shown before any search) -->
+    <div id="suggestionArea" class="mt-6">
+        {% if suggestions %}
+        <h2 class="text-sm font-medium text-slate-500 mb-4">Popular APIs</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {% for api in suggestions %}
+            <a href="/api/{{ api.id }}" class="block bg-slate-800 rounded-xl border border-slate-700 p-4 hover:border-brand-500/50 hover:bg-slate-750 transition">
+                <div class="flex items-start justify-between">
+                    <div class="min-w-0">
+                        <h3 class="text-sm font-semibold text-white truncate">{{ api.name }}</h3>
+                        <p class="text-xs text-slate-400 mt-1">{{ api.category.name }} &middot; {{ api.provider }}</p>
+                    </div>
+                    {% if api.is_free %}
+                    <span class="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full flex-shrink-0 ml-2">Free</span>
+                    {% endif %}
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="mt-8 bg-slate-800 rounded-2xl p-6 border border-slate-700">
+            <h3 class="text-sm font-semibold text-slate-300 mb-3">Try asking</h3>
+            <div class="flex flex-wrap gap-2">
+                <button onclick="quickSearch('有什么可以获取中国天气的免费API')" class="text-sm text-slate-300 bg-slate-700 px-4 py-2 rounded-xl hover:bg-slate-600 transition border border-slate-600">Chinese weather APIs</button>
+                <button onclick="quickSearch('适合做股票分析的免费API有哪些')" class="text-sm text-slate-300 bg-slate-700 px-4 py-2 rounded-xl hover:bg-slate-600 transition border border-slate-600">Stock market APIs</button>
+                <button onclick="quickSearch('有没有免费的大语言模型API')" class="text-sm text-slate-300 bg-slate-700 px-4 py-2 rounded-xl hover:bg-slate-600 transition border border-slate-600">Free LLM APIs</button>
+                <button onclick="quickSearch('推荐一些不需要API Key的免费接口')" class="text-sm text-slate-300 bg-slate-700 px-4 py-2 rounded-xl hover:bg-slate-600 transition border border-slate-600">No API key required</button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+const searchInput = document.getElementById('searchInput');
+const searchBtn = document.getElementById('searchBtn');
+const loadingArea = document.getElementById('loadingArea');
+const errorArea = document.getElementById('errorArea');
+const resultArea = document.getElementById('resultArea');
+const suggestionArea = document.getElementById('suggestionArea');
+const aiAnswer = document.getElementById('aiAnswer');
+const sourceList = document.getElementById('sourceList');
+
+function quickSearch(query) {
+    searchInput.value = query;
+    doSearch();
+}
+
+async function doSearch() {
+    const query = searchInput.value.trim();
+    if (!query) return;
+
+    loadingArea.classList.remove('hidden');
+    resultArea.classList.add('hidden');
+    errorArea.classList.add('hidden');
+    searchBtn.disabled = true;
+
+    try {
+        const resp = await fetch('/api/ask', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
+            cache: 'no-store',
+            body: JSON.stringify({ query: query })
+        });
+
+        if (!resp.ok) {
+            const errData = await resp.json();
+            throw new Error(errData.error || 'Request failed');
+        }
+
+        const data = await resp.json();
+        loadingArea.classList.add('hidden');
+
+        // Show thinking process
+        const thinkingArea = document.getElementById('thinkingArea');
+        const thinkingContent = document.getElementById('thinkingContent');
+        if (data.thinking) {
+            thinkingContent.textContent = data.thinking;
+            thinkingArea.classList.remove('hidden');
+        } else {
+            thinkingArea.classList.add('hidden');
+        }
+
+        // Render AI answer with markdown support
+        let answerHtml = data.answer || 'No response. Please try again.';
+
+        const div = document.createElement('div');
+        div.textContent = answerHtml;
+        answerHtml = div.innerHTML;
+
+        answerHtml = answerHtml
+            .replace(/\*\*(.+?)\*\*/g, '<strong class="text-slate-200">$1</strong>')
+            .replace(/^### (.+)$/gm, '<h3 class="text-base font-semibold mt-4 mb-2 text-white">$1</h3>')
+            .replace(/^## (.+)$/gm, '<h2 class="text-lg font-semibold mt-4 mb-2 text-white">$1</h2>')
+            .replace(/^[*-] (.+)$/gm, '<li class="ml-4 text-slate-300">$1</li>')
+            .replace(/\n\n/g, '</p><p class="mb-2">')
+            .replace(/\n/g, '<br>');
+
+        if (!answerHtml.startsWith('<p') && !answerHtml.startsWith('<h') && !answerHtml.startsWith('<li') && !answerHtml.startsWith('<strong')) {
+            answerHtml = '<p class="mb-2">' + answerHtml + '</p>';
+        }
+
+        aiAnswer.innerHTML = answerHtml;
+
+        // Show sources
+        sourceList.innerHTML = '';
+        if (data.sources && data.sources.length > 0) {
+            suggestionArea.classList.add('hidden');
+            data.sources.forEach(api => {
+                const card = document.createElement('a');
+                card.href = '/api/' + api.id;
+                card.className = 'block bg-slate-800 rounded-xl border border-slate-700 p-4 hover:border-brand-500/50 hover:bg-slate-750 transition';
+                card.innerHTML = `
+                    <div class="flex items-start justify-between">
+                        <div class="min-w-0 flex-1">
+                            <h3 class="text-sm font-semibold text-white">${escapeHtml(api.name)}</h3>
+                            <p class="text-xs text-slate-400 mt-1">${escapeHtml(api.category)} &middot; ${escapeHtml(api.provider)}</p>
+                            <div class="flex flex-wrap gap-1 mt-2">
+                                ${(api.tags || []).slice(0, 3).map(t => `<span class="text-xs text-slate-400 bg-slate-700 px-1.5 py-0.5 rounded">${escapeHtml(t)}</span>`).join('')}
+                            </div>
+                        </div>
+                        <span class="text-xs text-brand-400 font-medium flex-shrink-0 ml-3">View</span>
+                    </div>`;
+                sourceList.appendChild(card);
+            });
+        }
+
+        resultArea.classList.remove('hidden');
+    } catch (err) {
+        loadingArea.classList.add('hidden');
+        errorArea.classList.remove('hidden');
+        errorArea.innerHTML = `
+            <div class="bg-red-500/10 border border-red-500/30 rounded-2xl p-6 text-center">
+                <p class="text-red-400 font-medium mb-2">Search failed</p>
+                <p class="text-red-300/70 text-sm">${escapeHtml(err.message)}</p>
+                <p class="text-red-300/50 text-xs mt-2">Please ensure the server is running properly.</p>
+            </div>`;
+    } finally {
+        searchBtn.disabled = false;
+    }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function toggleThinking() {
+    const tc = document.getElementById('thinkingContent');
+    if (tc.style.maxHeight === 'none') {
+        tc.style.maxHeight = '24rem';
+    } else {
+        tc.style.maxHeight = 'none';
+    }
+}
+
+searchBtn.addEventListener('click', doSearch);
+searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') doSearch();
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }}</title>
+    <meta name="description" content="FreeAPI Directory - 免费 API 资源导航，涵盖天气地理、新闻媒体、人工智能、金融数据、社交平台、开发工具等分类。AI 智能搜索，快速找到你需要的免费 API。">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 50: '#1e293b', 100: '#1e3a5f', 200: '#2563eb', 300: '#3b82f6', 400: '#60a5fa', 500: '#60a5fa', 600: '#3b82f6', 700: '#2563eb', 800: '#1d4ed8', 900: '#1e3a8a' }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+    <style>
+        .markdown-body h2 { font-size: 1.25rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; color: #e2e8f0; }
+        .markdown-body h3 { font-size: 1.1rem; font-weight: 600; margin-top: 1rem; margin-bottom: 0.5rem; color: #cbd5e1; }
+        .markdown-body p { margin-bottom: 0.75rem; line-height: 1.75; color: #94a3b8; }
+        .markdown-body ul { list-style: disc; padding-left: 1.25rem; margin-bottom: 0.75rem; color: #94a3b8; }
+        .markdown-body code { background: #1e293b; padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.875rem; font-family: monospace; color: #93c5fd; }
+        .markdown-body pre { background: #0f172a; color: #e2e8f0; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin-bottom: 1rem; font-size: 0.875rem; }
+        .markdown-body pre code { background: none; padding: 0; color: inherit; }
+        .loading-dots::after { content: ''; animation: dots 1.5s steps(4, end) infinite; }
+        @keyframes dots { 0% { content: '.'; } 25% { content: '..'; } 50% { content: '...'; } 75% { content: '....'; } }
+    </style>
+</head>
+<body class="bg-slate-900 min-h-screen flex flex-col text-slate-100 dark">
+    <script>
+        (function() {
+            const saved = localStorage.getItem('freeapi-theme');
+            if (saved === 'light') {
+                document.body.classList.remove('dark');
+                document.documentElement.classList.remove('dark');
+                document.body.classList.add('bg-gray-50', 'text-gray-900');
+                document.body.classList.remove('bg-slate-900', 'text-slate-100');
+            }
+        })();
+    </script>
+
+    <!-- Navigation -->
+    <nav class="bg-slate-800/80 backdrop-blur border-b border-slate-700 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center space-x-8">
+                    <a href="/" class="text-xl font-bold text-brand-400 hover:text-brand-300 transition">
+                        FreeAPI
+                    </a>
+                    <div class="hidden md:flex space-x-6">
+                        <a href="/" class="text-sm font-medium text-slate-300 hover:text-brand-400 transition">Home</a>
+                        {% for cat in categories %}
+                        <a href="/category/{{ cat.slug }}" class="text-sm font-medium text-slate-400 hover:text-brand-400 transition">{{ cat.name }}</a>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button onclick="toggleTheme()" id="themeBtn" class="px-3 py-1.5 text-xs font-medium bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition border border-slate-600">
+                        Light
+                    </button>
+                    <a href="/search" class="inline-flex items-center px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition">
+                        AI Search
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile category bar -->
+    <div class="md:hidden bg-slate-800 border-b border-slate-700 overflow-x-auto">
+        <div class="flex space-x-1 px-3 py-2">
+            <a href="/" class="flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-full bg-brand-600/30 text-brand-300">All</a>
+            {% for cat in categories %}
+            <a href="/category/{{ cat.slug }}" class="flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-full text-slate-400 hover:bg-slate-700">{{ cat.name }}</a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="flex-1">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-800/50 border-t border-slate-700 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+                <div class="text-sm text-slate-500">
+                    <p>FreeAPI Directory - Free Public API Hub</p>
+                </div>
+                <div class="flex space-x-6 text-sm text-slate-600">
+                    <span>{{ categories|length if categories else 0 }} Categories &middot; 62 APIs</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+<script>
+function toggleTheme() {
+    const body = document.body;
+    const btn = document.getElementById('themeBtn');
+    if (body.classList.contains('dark')) {
+        body.classList.remove('dark', 'bg-slate-900', 'text-slate-100');
+        body.classList.add('bg-gray-50', 'text-gray-900');
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('freeapi-theme', 'light');
+        btn.textContent = 'Dark';
+    } else {
+        body.classList.add('dark', 'bg-slate-900', 'text-slate-100');
+        body.classList.remove('bg-gray-50', 'text-gray-900');
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('freeapi-theme', 'dark');
+        btn.textContent = 'Light';
+    }
+}
+</script>
+
+</body>
+</html>
